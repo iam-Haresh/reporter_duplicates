@@ -56,7 +56,7 @@ def main():
     if not url or not token:
         sys.exit("Error: GITLAB_URL and GITLAB_TOKEN must be set (env var or .env file).")
 
-    gl = gitlab.Gitlab(url=url, private_token=token)
+    gl = gitlab.Gitlab(url=url, private_token=token, ssl_verify=False)
 
     print(f"Connecting to {url} ...")
     groups = gl.groups.list(all=True)  # includes every subgroup as its own group
@@ -67,7 +67,10 @@ def main():
 
     for idx, g in enumerate(groups, 1):
         top_level = g.full_path.split("/")[0]
-        ldap_linked = bool(g.ldap_group_links.list())
+        try:
+            ldap_linked = bool(g.ldap_group_links.list())
+        except gitlab.exceptions.GitlabError:
+            ldap_linked = False  # 404 = no LDAP groups linked
         print(f"[{idx}/{len(groups)}] {g.full_path}")
 
         for m in g.members.list(all=True):          # direct members only
